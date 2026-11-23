@@ -1,4 +1,55 @@
-- name: Create branch, commit, and open Pull Request
+name: Autonomous Dev Agent
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: agent-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  develop-and-test:
+    if: github.event.label.name == 'agent-ready'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal agent dependencies
+        run: pip install --quiet openai pydantic
+
+      - name: Run Dev Agent + Validation (node --test)
+        id: agent
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_FALLBACK_MODELS: ${{ secrets.LLM_FALLBACK_MODELS }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          MAX_STEPS: "3"
+          MAX_RUN_TOKENS: "30000"
+        run: python .agent/run_agent.py
+
+      - name: Create branch, commit, and open Pull Request
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
