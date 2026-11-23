@@ -1,7 +1,1 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { calculate } from '../src/calculator.js';
-
-test('throws error for unimplemented operation', () => {
-  assert.throws(() => calculate(1, 1, '?'), /not implemented/i);
-});
+import test from 'node:test';import assert from 'node:assert/strict';import { calculate } from '../src/calculator.js';test('throws error for unimplemented operation', () => {assert.throws(() => calculate(1, 1, '?'), /not implemented/i);});test('addition (+) positive numbers', () => {assert.strictEqual(calculate(2, 3, '+'), 5);});test('addition (+) negative numbers', () => {assert.strictEqual(calculate(-2, -3, '+'), -5);});test('addition (+) with zero', () => {assert.strictEqual(calculate(5, 0, '+'), 5);assert.strictEqual(calculate(0, 0, '+'), 0);});test('addition (+) decimals', () => {assert.strictEqual(calculate(0.1, 0.2, '+'), 0.30000000000000004);});
