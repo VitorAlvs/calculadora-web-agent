@@ -1,3 +1,1 @@
-export function calculate(a, b, operator) {
-  throw new Error(`Operation not implemented: ${operator}`);
-}
+export function calculate(a, b, operator) {if (operator === '+') {return a + b;}throw new Error(`Operation not implemented: ${operator}`);}
