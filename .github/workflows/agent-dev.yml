@@ -1,0 +1,96 @@
+name: Autonomous Dev Agent
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: agent-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  develop-and-test:
+    if: github.event.label.name == 'agent-ready'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js (Runner de testes)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Configurar Python (Orquestrador)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências mínimas do agente
+        run: pip install --quiet openai pydantic
+
+      - name: Executar Agente Dev + Validação (node --test)
+        id: agent
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_FALLBACK_MODELS: ${{ secrets.LLM_FALLBACK_MODELS }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          MAX_STEPS: "3"
+          MAX_RUN_TOKENS: "30000"
+        run: python .agent/run_agent.py
+
+      - name: Criar branch, commitar e abrir Pull Request
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          BRANCH="agent/issue-${ISSUE_NUMBER}"
+          git config user.name "agent-dev[bot]"
+          git config user.email "agent-dev[bot]@users.noreply.github.com"
+
+          git checkout -B "$BRANCH"
+          git add index.html style.css src tests
+
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração detectada para commitar."
+            exit 1
+          fi
+
+          git commit -m "feat(agent): resolve issue #${ISSUE_NUMBER}"
+          git push -u origin "$BRANCH" --force
+
+          PR_TITLE="${AGENT_PR_TITLE:-feat: resolve issue #${ISSUE_NUMBER}}"
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body-file "$RUNNER_TEMP/agent_report.md"
+            PR_URL=$(gh pr view "$EXISTING_PR" --json url --jq '.url')
+          else
+            PR_URL=$(gh pr create --base main --head "$BRANCH" --title "$PR_TITLE" --body-file "$RUNNER_TEMP/agent_report.md")
+          fi
+
+          gh issue comment "$ISSUE_NUMBER" --body "Agente concluiu a implementação e todos os testes passaram. Pull Request pronto para revisão: ${PR_URL}"
+
+      - name: Reportar falha na Issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -f "$RUNNER_TEMP/agent_report.md" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/agent_report.md"
+          else
+            gh issue comment "$ISSUE_NUMBER" --body "O agente encontrou um erro antes de concluir. Veja os logs em: ${RUN_URL}"
+          fi
