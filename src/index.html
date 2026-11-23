@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Web (Agente)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>Calculadora</h1>
+    <form id="calc-form">
+      <input id="num-a" type="number" step="any" placeholder="Número A" required />
+      <select id="operator" required>
+        <option value="">Selecione a operação</option>
+      </select>
+      <input id="num-b" type="number" step="any" placeholder="Número B" required />
+      <button type="submit">Calcular</button>
+    </form>
+    <p id="result">Resultado: —</p>
+  </main>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
