@@ -10,8 +10,8 @@ form.addEventListener('submit', (event) => {
   const op = document.getElementById('operator').value;
 
   try {
-    resultEl.textContent = `Resultado: ${calculate(a, b, op)}`;
+    resultEl.textContent = `Result: ${calculate(a, b, op)}`;
   } catch (err) {
-    resultEl.textContent = `Erro: ${err.message}`;
+    resultEl.textContent = `Error: ${err.message}`;
   }
 });

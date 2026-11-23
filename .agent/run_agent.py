@@ -33,18 +33,18 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class FileEdit(BaseModel):
-    path: str = Field(description="Caminho relativo na raiz do repo, ex: 'src/calculator.js'")
-    content: str = Field(description="Conteúdo completo do arquivo atualizado")
+    path: str = Field(description="Relative path from repo root, e.g. 'src/calculator.js'")
+    content: str = Field(description="Full updated file content")
 
 
 class AgentCodePlan(BaseModel):
-    pr_title: str = Field(min_length=5, description="Título curto do Pull Request em português")
-    summary: str = Field(min_length=15, description="Resumo objetivo das alterações feitas")
-    files: list[FileEdit] = Field(min_length=1, description="Arquivos modificados ou criados")
+    pr_title: str = Field(min_length=5, description="Concise Conventional Commit PR title in English")
+    summary: str = Field(min_length=15, description="Short objective summary of changes made")
+    files: list[FileEdit] = Field(min_length=1, description="Modified or created files")
 
 
 class SecurityViolationError(ValueError):
-    """Bloqueia escrita fora da allowlist do projeto."""
+    """Blocks writes outside the repository allowlist."""
 
 
 def load_prompt(path: Path) -> tuple[str, str]:
@@ -60,11 +60,11 @@ def load_prompt(path: Path) -> tuple[str, str]:
 def resolve_allowed_path(relative_path: str) -> Path:
     raw = Path(relative_path.replace("\\", "/"))
     if raw.is_absolute():
-        raise SecurityViolationError(f"Caminho absoluto bloqueado: {relative_path}")
+        raise SecurityViolationError(f"Absolute path blocked: {relative_path}")
 
     target = (REPO_ROOT / raw).resolve()
     if not target.is_relative_to(REPO_ROOT):
-        raise SecurityViolationError(f"Tentativa de escape bloqueada: {relative_path}")
+        raise SecurityViolationError(f"Path traversal blocked: {relative_path}")
 
     rel = target.relative_to(REPO_ROOT)
     parts = rel.parts
@@ -75,12 +75,12 @@ def resolve_allowed_path(relative_path: str) -> Path:
         return target
 
     raise SecurityViolationError(
-        f"Arquivo fora da allowlist (permitidos: index.html, style.css, src/*.js, tests/*.js): {rel}"
+        f"Path outside allowlist (allowed: index.html, style.css, src/*.js, tests/*.js): {rel}"
     )
 
 
 def snapshot_repo() -> str:
-    """Lê apenas os arquivos permitidos para manter a janela de contexto enxuta."""
+    """Reads only allowed files to keep context minimal."""
     files: list[Path] = []
     for name in sorted(ALLOWED_ROOT_FILES):
         p = REPO_ROOT / name
@@ -100,7 +100,7 @@ def snapshot_repo() -> str:
 
 
 def run_validation() -> tuple[bool, str, str]:
-    """Portão determinístico: checagem de sintaxe (node --check) + testes (node --test)."""
+    """Deterministic gate: syntax check (node --check) + unit tests (node --test)."""
     for folder in sorted(ALLOWED_DIRS):
         d = REPO_ROOT / folder
         if not d.is_dir():
@@ -164,7 +164,7 @@ class ResilientLLM:
             {
                 "role": "user",
                 "content": (
-                    "Responda EXCLUSIVAMENTE com um JSON válido respeitando este JSON Schema:\n"
+                    "Respond EXCLUSIVELY with valid JSON matching this JSON Schema:\n"
                     f"{schema_str}"
                 ),
             }
@@ -183,7 +183,7 @@ class ResilientLLM:
         self, messages: list[dict[str, str]], schema: type[T], step: int
     ) -> T:
         if self.tokens_used >= MAX_RUN_TOKENS:
-            raise RuntimeError(f"Orçamento excedido: {self.tokens_used}/{MAX_RUN_TOKENS} tokens.")
+            raise RuntimeError(f"Token budget exceeded: {self.tokens_used}/{MAX_RUN_TOKENS}.")
 
         models = [self.primary] + [m for m in self.fallbacks if m != self.primary]
         waits = [5, 15]
@@ -203,13 +203,13 @@ class ResilientLLM:
                         parsed = comp.choices[0].message.parsed
                         total = comp.usage.total_tokens if comp.usage else 0
                         if parsed is None:
-                            raise ValueError("Structured parse retornou vazio.")
+                            raise ValueError("Empty structured parse result.")
                     except (BadRequestError, ValueError):
                         parsed, total = self._call_json_fallback(model, messages, schema)
 
                     self.tokens_used += total
                     self.last_model = model
-                    print(f"[LLM OK] step={step} model={model} tokens={total} acum={self.tokens_used}")
+                    print(f"[LLM OK] step={step} model={model} tokens={total} total={self.tokens_used}")
                     return parsed
 
                 except (
@@ -223,16 +223,16 @@ class ResilientLLM:
                 ) as exc:
                     last_err = exc
                     if isinstance(exc, NotFoundError):
-                        print(f"[WARN] {model} retornou 404. Pulando para próximo modelo...")
+                        print(f"[WARN] {model} returned 404. Skipping to next model...")
                         break
                     if attempt < len(waits):
                         wait_s = waits[attempt]
-                        print(f"[WARN] {model} falhou ({type(exc).__name__}). Aguardando {wait_s}s...")
+                        print(f"[WARN] {model} failed ({type(exc).__name__}). Retrying in {wait_s}s...")
                         time.sleep(wait_s)
                     else:
-                        print(f"[WARN] {model} esgotou retries. Tentando fallback...")
+                        print(f"[WARN] {model} exhausted retries. Falling back...")
 
-        raise RuntimeError(f"Todos os modelos falharam no passo {step}: {last_err}") from last_err
+        raise RuntimeError(f"All models failed at step {step}: {last_err}") from last_err
 
 
 def write_report(
@@ -248,18 +248,17 @@ def write_report(
 ) -> None:
     issue_num = os.getenv("ISSUE_NUMBER", "?")
     report = (
-        f"## Relatório do Agente Dev (`{status}`)\n\n"
+        f"## Dev Agent Report (`{status}`)\n\n"
         f"- **Issue:** #{issue_num}\n"
-        f"- **Modelo utilizado:** `{model}` | **Prompt:** `{prompt_ver}`\n"
-        f"- **Passos:** {steps}/{MAX_STEPS} | **Tokens totais:** {tokens}\n"
-        f"- **Arquivos alterados:** {', '.join(f'`{f}`' for f in files) or 'nenhum'}\n\n"
-        f"### Resumo\n{summary}\n\n"
-        f"### Saída da Validação (`node --test`)\n```text\n{test_output}\n```\n\n"
+        f"- **Model:** `{model}` | **Prompt:** `{prompt_ver}`\n"
+        f"- **Steps:** {steps}/{MAX_STEPS} | **Total tokens:** {tokens}\n"
+        f"- **Modified files:** {', '.join(f'`{f}`' for f in files) or 'none'}\n\n"
+        f"### Summary\n{summary}\n\n"
+        f"### Validation Output (`node --test`)\n```text\n{test_output}\n```\n\n"
         f"Closes #{issue_num}\n"
     )
     REPORT_PATH.write_text(report, encoding="utf-8")
 
-    # Exporta título do PR para o GitHub Actions
     gh_env = os.getenv("GITHUB_ENV")
     if gh_env:
         clean_title = pr_title.replace("\n", " ").strip()
@@ -280,7 +279,7 @@ def main() -> int:
     last_plan: AgentCodePlan | None = None
     last_test_output = ""
 
-    print(f"Iniciando Agente Dev para Issue #{issue_num} (prompt={prompt_ver}, max_steps={MAX_STEPS})")
+    print(f"Starting Dev Agent for Issue #{issue_num} (prompt={prompt_ver}, max_steps={MAX_STEPS})")
 
     for step in range(1, MAX_STEPS + 1):
         repo_state = snapshot_repo()
@@ -291,7 +290,7 @@ def main() -> int:
                 "content": (
                     f"## Issue #{issue_num}: {issue_title}\n\n"
                     f"{issue_body}\n\n"
-                    f"## Estado atual do repositório\n\n{repo_state}"
+                    f"## Current repository files\n\n{repo_state}"
                 ),
             },
         ]
@@ -300,8 +299,8 @@ def main() -> int:
                 {
                     "role": "user",
                     "content": (
-                        f"A validação anterior falhou.\n{last_feedback}\n\n"
-                        "Corrija a causa raiz e retorne os arquivos corrigidos completos."
+                        f"Previous validation failed.\n{last_feedback}\n\n"
+                        "Fix the root cause and return the full corrected files."
                     ),
                 }
             )
@@ -313,7 +312,7 @@ def main() -> int:
             write_report(
                 status="error",
                 pr_title=f"feat: resolve issue #{issue_num}",
-                summary=f"Falha na chamada ao LLM: {exc}",
+                summary=f"LLM call failed: {exc}",
                 steps=step,
                 tokens=llm.tokens_used,
                 model=llm.last_model,
@@ -321,10 +320,9 @@ def main() -> int:
                 files=last_files,
                 test_output=str(exc),
             )
-            print(f"[ERRO] {exc}", file=sys.stderr)
+            print(f"[ERROR] {exc}", file=sys.stderr)
             return 1
 
-        # Escrita segura com guardrail de allowlist
         try:
             written: list[str] = []
             for item in plan.files:
@@ -333,17 +331,16 @@ def main() -> int:
                 target.write_text(item.content, encoding="utf-8")
                 written.append(target.relative_to(REPO_ROOT).as_posix())
             last_files = written
-            print(f"[WRITE] Arquivos atualizados: {', '.join(written)}")
+            print(f"[WRITE] Updated files: {', '.join(written)}")
         except SecurityViolationError as sec_err:
             print(f"[GUARDRAIL] {sec_err}")
-            last_feedback = f"Erro de segurança (Guardrail): {sec_err}"
+            last_feedback = f"Security guardrail error: {sec_err}"
             continue
 
-        # Validação determinística
         passed, stage, output = run_validation()
         last_test_output = output
         if passed:
-            print(f"[SUCESSO] Validação aprovada no passo {step}!")
+            print(f"[SUCCESS] Validation passed at step {step}!")
             write_report(
                 status="success",
                 pr_title=plan.pr_title,
@@ -357,13 +354,13 @@ def main() -> int:
             )
             return 0
 
-        print(f"[FALHA] etapa={stage} no passo {step}. Preparando auto-correção...")
-        last_feedback = f"Etapa que falhou: {stage}\nSaída:\n{output}"
+        print(f"[FAIL] stage={stage} at step {step}. Preparing self-correction...")
+        last_feedback = f"Failed stage: {stage}\nOutput:\n{output}"
 
     write_report(
         status="failed_max_steps",
         pr_title=last_plan.pr_title if last_plan else f"feat: resolve issue #{issue_num}",
-        summary=f"O agente atingiu o limite de {MAX_STEPS} passos sem passar nos testes.",
+        summary=f"Agent reached max steps ({MAX_STEPS}) without passing validation.",
         steps=MAX_STEPS,
         tokens=llm.tokens_used,
         model=llm.last_model,

@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calculadora Web (Agente)</title>
+  <title>Web Calculator (Agent)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="card">
-    <h1>Calculadora</h1>
+    <h1>Calculator</h1>
     <form id="calc-form">
-      <input id="num-a" type="number" step="any" placeholder="Número A" required />
+      <input id="num-a" type="number" step="any" placeholder="Number A" required />
       <select id="operator" required>
-        <option value="">Selecione a operação</option>
+        <option value="">Select operation</option>
       </select>
-      <input id="num-b" type="number" step="any" placeholder="Número B" required />
-      <button type="submit">Calcular</button>
+      <input id="num-b" type="number" step="any" placeholder="Number B" required />
+      <button type="submit">Calculate</button>
     </form>
-    <p id="result">Resultado: —</p>
+    <p id="result">Result: —</p>
   </main>
   <script type="module" src="./src/app.js"></script>
 </body>
