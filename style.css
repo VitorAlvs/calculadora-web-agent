@@ -1,5 +1,9 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   background: #0f172a;
   color: #f8fafc;
   display: grid;
@@ -8,36 +12,86 @@ body {
   margin: 0;
 }
 
-.card {
-  background: #1e293b;
-  padding: 2rem;
-  border-radius: 12px;
+.calculator-card {
+  background: #0f172a;
+  border-radius: 20px;
   width: 320px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-}
-
-form {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
-input, select, button {
-  padding: 0.65rem;
-  border-radius: 8px;
-  border: 1px solid #334155;
-  font-size: 1rem;
+.display-panel {
+  background: #1e293b;
+  padding: 1.5rem 1.25rem 1rem;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 110px;
+  word-break: break-all;
 }
 
-button {
-  background: #3b82f6;
-  color: white;
+.prev-expression {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  min-height: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.main-display {
+  color: #f8fafc;
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+.keypad {
+  background: #0f172a;
+  padding: 1.25rem 1rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(5, 52px);
+  gap: 0.6rem;
+}
+
+.btn {
   border: none;
-  cursor: pointer;
+  border-radius: 12px;
+  font-size: 1.2rem;
   font-weight: 600;
+  cursor: pointer;
+  background: #334155;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
 }
 
-#result {
-  margin-top: 1.25rem;
-  font-weight: 600;
+.btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn-action {
+  background: #475569;
+  color: #f8fafc;
+}
+
+.btn-equals {
+  grid-column: 4;
+  grid-row: 4 / span 2;
+  background: #2563eb;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.btn:disabled {
+  background: #1e293b;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
