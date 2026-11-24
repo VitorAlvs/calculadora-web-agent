@@ -1,1 +1,43 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Web Calculator (Agent)</title><link rel="stylesheet" href="style.css" /></head><body><main class="card"><h1>Calculator</h1><form id="calc-form"><input id="num-a" type="number" step="any" placeholder="Number A" required /><select id="operator" required><option value="">Select operation</option><option value="+">+</option><option value="-">-</option></select><input id="num-b" type="number" step="any" placeholder="Number B" required /><button type="submit">Calculate</button></form><p id="result">Result: —</p></main><script type="module" src="./src/app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Calculator (Agent)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="calculator-card">
+    <div class="display-panel">
+      <div id="prev-expression" class="prev-expression"></div>
+      <div id="main-display" class="main-display">0</div>
+    </div>
+    <div class="keypad">
+      <button type="button" class="btn btn-action" data-action="clear">C</button>
+      <button type="button" class="btn btn-op" data-op="/"></button>
+      <button type="button" class="btn btn-op" data-op="*"></button>
+      <button type="button" class="btn btn-action" data-action="ce">CE</button>
+
+      <button type="button" class="btn btn-digit" data-digit="7">7</button>
+      <button type="button" class="btn btn-digit" data-digit="8">8</button>
+      <button type="button" class="btn btn-digit" data-digit="9">9</button>
+      <button type="button" class="btn btn-op" data-op="-"></button>
+
+      <button type="button" class="btn btn-digit" data-digit="4">4</button>
+      <button type="button" class="btn btn-digit" data-digit="5">5</button>
+      <button type="button" class="btn btn-digit" data-digit="6">6</button>
+      <button type="button" class="btn btn-op" data-op="+"></button>
+
+      <button type="button" class="btn btn-digit" data-digit="1">1</button>
+      <button type="button" class="btn btn-digit" data-digit="2">2</button>
+      <button type="button" class="btn btn-digit" data-digit="3">3</button>
+      <button type="button" class="btn btn-equals" data-action="equals">=</button>
+
+      <button type="button" class="btn btn-op" data-op="%"></button>
+      <button type="button" class="btn btn-digit" data-digit="0">0</button>
+      <button type="button" class="btn btn-digit" data-digit=".">.</button>
+    </div>
+  </main>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
