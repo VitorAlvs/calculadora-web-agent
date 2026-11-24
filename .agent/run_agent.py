@@ -154,7 +154,7 @@ class ResilientLLM:
         self.client = OpenAI(
             base_url=os.environ["LLM_BASE_URL"].strip(),
             api_key=os.environ["LLM_API_KEY"].strip(),
-            timeout=45.0,
+            timeout=25.0,  # antes era 45.0
             max_retries=0,
         )
 
@@ -188,7 +188,7 @@ class ResilientLLM:
             raise RuntimeError(f"Token budget exceeded: {self.tokens_used}/{MAX_RUN_TOKENS}.")
 
         models = [self.primary] + [m for m in self.fallbacks if m != self.primary]
-        waits = [5, 15]
+        waits = [3]
         last_err: Exception | None = None
 
         for model in models:
