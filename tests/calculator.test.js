@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculate, SUPPORTED_OPERATORS } from '../src/calculator.js';
 
-test('SUPPORTED_OPERATORS registry contains + and excludes unhandled ops', () => {
+test('SUPPORTED_OPERATORS registry contains + and - and excludes unhandled ops', () => {
   assert.strictEqual(SUPPORTED_OPERATORS['+'], '+');
-  assert.strictEqual(SUPPORTED_OPERATORS['-'], undefined);
+  assert.strictEqual(SUPPORTED_OPERATORS['-'], '−');
   assert.strictEqual(SUPPORTED_OPERATORS['*'], undefined);
   assert.strictEqual(SUPPORTED_OPERATORS['/'], undefined);
   assert.strictEqual(SUPPORTED_OPERATORS['%'], undefined);
