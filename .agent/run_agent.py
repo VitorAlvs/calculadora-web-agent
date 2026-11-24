@@ -24,7 +24,7 @@ REPORT_PATH = Path(os.getenv("RUNNER_TEMP", str(REPO_ROOT))) / "agent_report.md"
 
 MAX_STEPS = int(os.getenv("MAX_STEPS", "3"))
 MAX_RUN_TOKENS = int(os.getenv("MAX_RUN_TOKENS", "30000"))
-MAX_TOKENS_PER_CALL = 4096
+MAX_TOKENS_PER_CALL = 8192
 
 ALLOWED_ROOT_FILES = {"index.html", "style.css"}
 ALLOWED_DIRS = {"src", "tests"}
