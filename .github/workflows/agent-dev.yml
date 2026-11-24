@@ -47,9 +47,9 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           MAX_STEPS: "3"
-          MAX_RUN_TOKENS: "30000"
+          MAX_RUN_TOKENS: "60000"
         run: |
-          WAIT_TIMES=(30 60 120)
+          WAIT_TIMES=(60)
           TOTAL_ATTEMPTS=$(( ${#WAIT_TIMES[@]} + 1 ))
 
           for attempt in $(seq 1 $TOTAL_ATTEMPTS); do
@@ -70,10 +70,9 @@ jobs:
             fi
           done
 
-      - name: Create branch, commit, and open Pull Request
+      - name: Create branch and commit code changes
         if: success()
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           BRANCH="agent/issue-${ISSUE_NUMBER}"
@@ -84,22 +83,48 @@ jobs:
           git add index.html style.css src tests
 
           if git diff --cached --quiet; then
-            echo "No changes detected to commit."
+            echo "No code changes detected to commit."
             exit 1
           fi
 
           git commit -m "feat(agent): resolve issue #${ISSUE_NUMBER}"
-          git push -u origin "$BRANCH" --force
+          echo "AGENT_BRANCH=${BRANCH}" >> "$GITHUB_ENV"
+
+      - name: Run Docs Agent (README.md only, fail-soft)
+        if: success()
+        env:
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_FALLBACK_MODELS: ${{ secrets.LLM_FALLBACK_MODELS }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          MAX_RUN_TOKENS: "30000"
+        run: python .agent/run_docs_agent.py
+
+      - name: Commit README update (if any) and open Pull Request
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          if ! git diff --quiet README.md; then
+            git add README.md
+            git commit -m "docs(agent): update README for issue #${ISSUE_NUMBER}"
+          fi
+
+          git push -u origin "$AGENT_BRANCH" --force
 
           PR_TITLE="${AGENT_PR_TITLE:-feat: resolve issue #${ISSUE_NUMBER}}"
-          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+          EXISTING_PR=$(gh pr list --head "$AGENT_BRANCH" --json number --jq '.[0].number')
 
           if [ -n "$EXISTING_PR" ]; then
             gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body-file "$RUNNER_TEMP/agent_report.md"
             PR_NUM="$EXISTING_PR"
           else
-            gh pr create --base main --head "$BRANCH" --title "$PR_TITLE" --body-file "$RUNNER_TEMP/agent_report.md"
-            PR_NUM=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')
+            gh pr create --base main --head "$AGENT_BRANCH" --title "$PR_TITLE" --body-file "$RUNNER_TEMP/agent_report.md"
+            PR_NUM=$(gh pr list --head "$AGENT_BRANCH" --json number --jq '.[0].number')
           fi
 
           PR_URL=$(gh pr view "$PR_NUM" --json url --jq '.url')
@@ -128,10 +153,10 @@ jobs:
         run: |
           gh pr comment "$PR_NUM" --body-file "$RUNNER_TEMP/review_report.md"
           gh pr edit "$PR_NUM" --add-reviewer "$ISSUE_AUTHOR"
-          gh issue comment "$ISSUE_NUMBER" --body "Dev + Reviewer agents finished (approved=${REVIEW_APPROVED}). PR ready for @${ISSUE_AUTHOR}: ${PR_URL}"
+          gh issue comment "$ISSUE_NUMBER" --body "Dev + Docs + Reviewer agents finished (approved=${REVIEW_APPROVED}). PR ready for @${ISSUE_AUTHOR}: ${PR_URL}"
 
       - name: Report failure on Issue
-        if: failure()
+        if: failure() || cancelled()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
