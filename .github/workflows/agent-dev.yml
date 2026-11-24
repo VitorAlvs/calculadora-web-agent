@@ -17,6 +17,7 @@ jobs:
   develop-and-test:
     if: github.event.label.name == 'agent-ready' && github.event.issue.user.login == github.repository_owner
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -48,9 +49,11 @@ jobs:
           MAX_STEPS: "3"
           MAX_RUN_TOKENS: "30000"
         run: |
-          MAX_API_RETRIES=3
-          for attempt in $(seq 1 $MAX_API_RETRIES); do
-            echo "=== Automated run attempt ${attempt}/${MAX_API_RETRIES} ==="
+          WAIT_TIMES=(30 60 120)
+          TOTAL_ATTEMPTS=$(( ${#WAIT_TIMES[@]} + 1 ))
+
+          for attempt in $(seq 1 $TOTAL_ATTEMPTS); do
+            echo "=== Automated run attempt ${attempt}/${TOTAL_ATTEMPTS} ==="
             set +e
             python .agent/run_agent.py
             EXIT_CODE=$?
@@ -58,9 +61,10 @@ jobs:
 
             if [ "$EXIT_CODE" -eq 0 ]; then
               exit 0
-            elif [ "$EXIT_CODE" -eq 2 ] && [ "$attempt" -lt "$MAX_API_RETRIES" ]; then
-              echo "Transient LLM API error (503/timeout). Sleeping 60s before automatic retry..."
-              sleep 60
+            elif [ "$EXIT_CODE" -eq 2 ] && [ "$attempt" -lt "$TOTAL_ATTEMPTS" ]; then
+              SLEEP_SEC=${WAIT_TIMES[$((attempt - 1))]}
+              echo "Transient LLM API error (503/timeout). Sleeping ${SLEEP_SEC}s before retry..."
+              sleep "$SLEEP_SEC"
             else
               exit "$EXIT_CODE"
             fi
