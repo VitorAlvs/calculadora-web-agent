@@ -46,6 +46,8 @@ class AgentCodePlan(BaseModel):
 class SecurityViolationError(ValueError):
     """Blocks writes outside the repository allowlist."""
 
+class LLMUnavailableError(RuntimeError):
+    """Falha transitória de rede/provedor (ex: 503, timeout, rate limit)."""
 
 def load_prompt(path: Path) -> tuple[str, str]:
     raw = path.read_text(encoding="utf-8")
@@ -232,7 +234,7 @@ class ResilientLLM:
                     else:
                         print(f"[WARN] {model} exhausted retries. Falling back...")
 
-        raise RuntimeError(f"All models failed at step {step}: {last_err}") from last_err
+        raise LLMUnavailableError(f"All models failed at step {step}: {last_err}") from last_err
 
 
 def write_report(
@@ -308,6 +310,20 @@ def main() -> int:
         try:
             plan = llm.call_structured(messages, AgentCodePlan, step)
             last_plan = plan
+        except LLMUnavailableError as exc:
+            write_report(
+                status="api_unavailable",
+                pr_title=f"feat: resolve issue #{issue_num}",
+                summary=f"Temporary LLM API unavailability: {exc}",
+                steps=step,
+                tokens=llm.tokens_used,
+                model=llm.last_model,
+                prompt_ver=prompt_ver,
+                files=last_files,
+                test_output=str(exc),
+            )
+            print(f"[API_UNAVAILABLE] {exc}", file=sys.stderr)
+            return 2
         except Exception as exc:
             write_report(
                 status="error",

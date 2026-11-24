@@ -35,7 +35,7 @@ jobs:
       - name: Install minimal agent dependencies
         run: pip install --quiet openai pydantic
 
-      - name: Run Dev Agent + Validation (node --test)
+      - name: Run Dev Agent + Validation (with auto-retry on 503)
         id: agent
         env:
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
@@ -47,7 +47,24 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           MAX_STEPS: "3"
           MAX_RUN_TOKENS: "30000"
-        run: python .agent/run_agent.py
+        run: |
+          MAX_API_RETRIES=3
+          for attempt in $(seq 1 $MAX_API_RETRIES); do
+            echo "=== Automated run attempt ${attempt}/${MAX_API_RETRIES} ==="
+            set +e
+            python .agent/run_agent.py
+            EXIT_CODE=$?
+            set -e
+
+            if [ "$EXIT_CODE" -eq 0 ]; then
+              exit 0
+            elif [ "$EXIT_CODE" -eq 2 ] && [ "$attempt" -lt "$MAX_API_RETRIES" ]; then
+              echo "Transient LLM API error (503/timeout). Sleeping 60s before automatic retry..."
+              sleep 60
+            else
+              exit "$EXIT_CODE"
+            fi
+          done
 
       - name: Create branch, commit, and open Pull Request
         if: success()
