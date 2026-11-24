@@ -154,4 +154,6 @@ calculadora-web-agent/
 - [x] Operação de Multiplicação (`*`) — Issue #9
 - [x] Agente de Documentação (`Docs Agent`) *fail-soft* + auditoria de README no Revisor + teste de contrato de UI
 - [x] Operação de Divisão (`/`) com tratamento para divisão por zero — Issue #11
-- [ ] Operação de Porcentagem (`%`)
+- [x] Operação de Porcentagem (`%`) — Issue #13
+
+```
