@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculate, SUPPORTED_OPERATORS } from '../src/calculator.js';
 
-test('SUPPORTED_OPERATORS registry contains +, -, *, and / and excludes unhandled ops', () => {
+test('SUPPORTED_OPERATORS registry contains +, -, *, /, and %', () => {
   assert.strictEqual(SUPPORTED_OPERATORS['+'], '+');
   assert.strictEqual(SUPPORTED_OPERATORS['-'], '−');
   assert.strictEqual(SUPPORTED_OPERATORS['*'], '×');
   assert.strictEqual(SUPPORTED_OPERATORS['/'], '÷');
-  assert.strictEqual(SUPPORTED_OPERATORS['%'], undefined);
+  assert.strictEqual(SUPPORTED_OPERATORS['%'], '%');
 });
 
 test('throws error for unimplemented operation', () => {
@@ -56,7 +56,6 @@ test('multiplication (*) negative numbers', () => {
   assert.strictEqual(calculate(-3, 4, '*'), -12);
   assert.strictEqual(calculate(-3, -4, '*'), 12);
 });
-
 test('multiplication (*) with zero', () => {
   assert.strictEqual(calculate(5, 0, '*'), 0);
   assert.strictEqual(calculate(0, 5, '*'), 0);
@@ -81,4 +80,22 @@ test('division (/) decimals', () => {
 
 test('division (/) by zero throws error', () => {
   assert.throws(() => calculate(5, 0, '/'), /Cannot divide by zero/);
+});
+
+test('percentage (%) positive numbers', () => {
+  assert.strictEqual(calculate(200, 15, '%'), 30);
+});
+
+test('percentage (%) negative numbers', () => {
+  assert.strictEqual(calculate(-200, 15, '%'), -30);
+  assert.strictEqual(calculate(200, -15, '%'), -30);
+});
+
+test('percentage (%) with zero', () => {
+  assert.strictEqual(calculate(100, 0, '%'), 0);
+  assert.strictEqual(calculate(0, 100, '%'), 0);
+});
+
+test('percentage (%) decimals', () => {
+  assert.strictEqual(calculate(50, 0.5, '%'), 0.25);
 });
