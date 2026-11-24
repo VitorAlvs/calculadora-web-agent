@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculate, SUPPORTED_OPERATORS } from '../src/calculator.js';
 
-test('SUPPORTED_OPERATORS registry contains +, -, and * and excludes unhandled ops', () => {
+test('SUPPORTED_OPERATORS registry contains +, -, *, and / and excludes unhandled ops', () => {
   assert.strictEqual(SUPPORTED_OPERATORS['+'], '+');
   assert.strictEqual(SUPPORTED_OPERATORS['-'], '−');
   assert.strictEqual(SUPPORTED_OPERATORS['*'], '×');
-  assert.strictEqual(SUPPORTED_OPERATORS['/'], undefined);
+  assert.strictEqual(SUPPORTED_OPERATORS['/'], '÷');
   assert.strictEqual(SUPPORTED_OPERATORS['%'], undefined);
 });
 
@@ -64,4 +64,21 @@ test('multiplication (*) with zero', () => {
 
 test('multiplication (*) decimals', () => {
   assert.strictEqual(calculate(0.2, 0.3, '*'), 0.06);
+});
+
+test('division (/) positive numbers', () => {
+  assert.strictEqual(calculate(12, 4, '/'), 3);
+});
+
+test('division (/) negative numbers', () => {
+  assert.strictEqual(calculate(-12, 4, '/'), -3);
+  assert.strictEqual(calculate(-12, -4, '/'), 3);
+});
+
+test('division (/) decimals', () => {
+  assert.strictEqual(calculate(7.5, 2.5, '/'), 3);
+});
+
+test('division (/) by zero throws error', () => {
+  assert.throws(() => calculate(5, 0, '/'), /Cannot divide by zero/);
 });
