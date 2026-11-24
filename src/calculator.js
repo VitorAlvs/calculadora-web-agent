@@ -2,7 +2,8 @@ export const SUPPORTED_OPERATORS = {
   '+': '+',
   '-': '−',
   '*': '×',
-  '/': '÷'
+  '/': '÷',
+  '%': '%'
 };
 
 export function calculate(a, b, operator) {
@@ -20,6 +21,9 @@ export function calculate(a, b, operator) {
       throw new Error('Cannot divide by zero');
     }
     return a / b;
+  }
+  if (operator === '%') {
+    return (a * b) / 100;
   }
   throw new Error(`Operation not implemented: ${operator}`);
 }
