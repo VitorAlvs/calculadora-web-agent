@@ -1,5 +1,6 @@
 export const SUPPORTED_OPERATORS = {
-  '+': '+'
+  '+': '+',
+  '-': '−'
 };
 
 export function calculate(a, b, operator) {
