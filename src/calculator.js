@@ -1,6 +1,7 @@
 export const SUPPORTED_OPERATORS = {
   '+': '+',
-  '-': '−'
+  '-': '−',
+  '*': '×'
 };
 
 export function calculate(a, b, operator) {
@@ -9,6 +10,9 @@ export function calculate(a, b, operator) {
   }
   if (operator === '-') {
     return a - b;
+  }
+  if (operator === '*') {
+    return a * b;
   }
   throw new Error(`Operation not implemented: ${operator}`);
 }

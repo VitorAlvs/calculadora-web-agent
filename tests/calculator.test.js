@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculate, SUPPORTED_OPERATORS } from '../src/calculator.js';
 
-test('SUPPORTED_OPERATORS registry contains + and - and excludes unhandled ops', () => {
+test('SUPPORTED_OPERATORS registry contains +, -, and * and excludes unhandled ops', () => {
   assert.strictEqual(SUPPORTED_OPERATORS['+'], '+');
   assert.strictEqual(SUPPORTED_OPERATORS['-'], '−');
-  assert.strictEqual(SUPPORTED_OPERATORS['*'], undefined);
+  assert.strictEqual(SUPPORTED_OPERATORS['*'], '×');
   assert.strictEqual(SUPPORTED_OPERATORS['/'], undefined);
   assert.strictEqual(SUPPORTED_OPERATORS['%'], undefined);
 });
@@ -46,4 +46,22 @@ test('subtraction (-) with zero', () => {
 
 test('subtraction (-) decimals', () => {
   assert.strictEqual(calculate(0.3, 0.1, '-'), 0.19999999999999998);
+});
+
+test('multiplication (*) positive numbers', () => {
+  assert.strictEqual(calculate(3, 4, '*'), 12);
+});
+
+test('multiplication (*) negative numbers', () => {
+  assert.strictEqual(calculate(-3, 4, '*'), -12);
+  assert.strictEqual(calculate(-3, -4, '*'), 12);
+});
+
+test('multiplication (*) with zero', () => {
+  assert.strictEqual(calculate(5, 0, '*'), 0);
+  assert.strictEqual(calculate(0, 5, '*'), 0);
+});
+
+test('multiplication (*) decimals', () => {
+  assert.strictEqual(calculate(0.2, 0.3, '*'), 0.06);
 });
