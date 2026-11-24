@@ -12,6 +12,7 @@ from openai import (
     APITimeoutError,
     BadRequestError,
     InternalServerError,
+    LengthFinishReasonError,
     NotFoundError,
     OpenAI,
     RateLimitError,
@@ -23,8 +24,8 @@ PROMPT_PATH = REPO_ROOT / ".agent" / "prompts" / "dev_v1.md"
 REPORT_PATH = Path(os.getenv("RUNNER_TEMP", str(REPO_ROOT))) / "agent_report.md"
 
 MAX_STEPS = int(os.getenv("MAX_STEPS", "3"))
-MAX_RUN_TOKENS = int(os.getenv("MAX_RUN_TOKENS", "30000"))
-MAX_TOKENS_PER_CALL = 8192
+MAX_RUN_TOKENS = int(os.getenv("MAX_RUN_TOKENS", "60000"))
+MAX_TOKENS_PER_CALL = 16384
 
 ALLOWED_ROOT_FILES = {"index.html", "style.css"}
 ALLOWED_DIRS = {"src", "tests"}
@@ -188,54 +189,45 @@ class ResilientLLM:
             raise RuntimeError(f"Token budget exceeded: {self.tokens_used}/{MAX_RUN_TOKENS}.")
 
         models = [self.primary] + [m for m in self.fallbacks if m != self.primary]
-        waits = [3]
         last_err: Exception | None = None
-
+    
         for model in models:
-            for attempt in range(len(waits) + 1):
+            try:
                 try:
-                    try:
-                        comp = self.client.beta.chat.completions.parse(
-                            model=model,
-                            messages=messages,
-                            response_format=schema,
-                            temperature=0.1,
-                            max_tokens=MAX_TOKENS_PER_CALL,
-                        )
-                        parsed = comp.choices[0].message.parsed
-                        total = comp.usage.total_tokens if comp.usage else 0
-                        if parsed is None:
-                            raise ValueError("Empty structured parse result.")
-                    except (BadRequestError, ValueError):
-                        parsed, total = self._call_json_fallback(model, messages, schema)
-
-                    self.tokens_used += total
-                    self.last_model = model
-                    print(f"[LLM OK] step={step} model={model} tokens={total} total={self.tokens_used}")
-                    return parsed
-
-                except (
-                    InternalServerError,
-                    RateLimitError,
-                    APIConnectionError,
-                    APITimeoutError,
-                    NotFoundError,
-                    ValidationError,
-                    json.JSONDecodeError,
-                ) as exc:
-                    last_err = exc
-                    if isinstance(exc, NotFoundError):
-                        print(f"[WARN] {model} returned 404. Skipping to next model...")
-                        break
-                    if attempt < len(waits):
-                        wait_s = waits[attempt]
-                        print(f"[WARN] {model} failed ({type(exc).__name__}). Retrying in {wait_s}s...")
-                        time.sleep(wait_s)
-                    else:
-                        print(f"[WARN] {model} exhausted retries. Falling back...")
-
+                    comp = self.client.beta.chat.completions.parse(
+                        model=model,
+                        messages=messages,
+                        response_format=schema,
+                        temperature=0.1,
+                        max_tokens=MAX_TOKENS_PER_CALL,
+                        reasoning_effort="low",
+                    )
+                    parsed = comp.choices[0].message.parsed
+                    total = comp.usage.total_tokens if comp.usage else 0
+                    if parsed is None:
+                        raise ValueError("Empty structured parse result.")
+                except (BadRequestError, ValueError):
+                    parsed, total = self._call_json_fallback(model, messages, schema)
+    
+                self.tokens_used += total
+                self.last_model = model
+                print(f"[LLM OK] step={step} model={model} tokens={total} total={self.tokens_used}")
+                return parsed
+    
+            except (
+                InternalServerError,
+                RateLimitError,
+                APIConnectionError,
+                APITimeoutError,
+                LengthFinishReasonError,
+                NotFoundError,
+                ValidationError,
+                json.JSONDecodeError,
+            ) as exc:
+                last_err = exc
+                print(f"[WARN] {model} failed ({type(exc).__name__}). Trying next fallback...")
+    
         raise LLMUnavailableError(f"All models failed at step {step}: {last_err}") from last_err
-
 
 def write_report(
     status: str,
