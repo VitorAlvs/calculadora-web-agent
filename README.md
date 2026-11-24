@@ -4,7 +4,7 @@ Projeto prático de aprendizado focado em **Engenharia de Agentes de IA aplicado
 
 A proposta é evoluir uma calculadora web de forma incremental — **uma feature ou correção por Issue** — onde uma esteira multi-agente recebe a demanda, implementa o código, valida com testes determinísticos (lógica + contrato de UI), atualiza a documentação, revisa o `git diff` completo e abre um Pull Request pronto para aprovação humana (*Human-in-the-Loop*) com deploy automático via **GitHub Pages**.
 
-🌐 **Demo ao vivo:** `https://VitorAlvs.github.io/calculadora-web-agent/`
+🌐 **Demo ao vivo:** `https://VitorAlvs.github.io/calculadora-web-agent/` 
 
 ---
 
@@ -153,5 +153,5 @@ calculadora-web-agent/
 - [x] Fix: destravar botão de Subtração (`-`) em `SUPPORTED_OPERATORS` — Issue #7
 - [x] Operação de Multiplicação (`*`) — Issue #9
 - [x] Agente de Documentação (`Docs Agent`) *fail-soft* + auditoria de README no Revisor + teste de contrato de UI
-- [ ] Operação de Divisão (`/`) com tratamento para divisão por zero
+- [x] Operação de Divisão (`/`) com tratamento para divisão por zero — Issue #11
 - [ ] Operação de Porcentagem (`%`)
